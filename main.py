@@ -22,15 +22,15 @@ def is_valid_df(df):
     """
     required_columns = ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror', 'trialtype']
     missing_columns = [col for col in required_columns if col not in df.columns]
-    if missing_columns:
-        raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
-    return True
+    return len(missing_columns)==0
+
 def clean_data(df):
     """
     Clean the dataset by handling missing values and removing outliers
     """
     # Create a copy of the dataframe
     df_clean = df.copy()
+    
     # 1. Handle missing values
     # Fill missing values with median for numeric columns
     numeric_columns = df_clean.select_dtypes(include=[np.number]).columns
@@ -41,6 +41,7 @@ def clean_data(df):
     for col in categorical_columns:
         if col != 'trialtype':  # Specifically check for non-numeric categories
             df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
+    
     # 2. Remove outliers using IQR method
     for col in ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror']:
         if col in df_clean.columns:
@@ -53,21 +54,25 @@ def clean_data(df):
             upper_bound = Q3 + 1.5 * IQR
             # Remove outliers
             df_clean = df_clean[(df_clean[col] >= lower_bound) & (df_clean[col] <= upper_bound)]
+    
     # Print cleaning summary
     print("Data Cleaning Summary:")
     print(f"Original rows: {len(df)}")
     print(f"Rows after cleaning: {len(df_clean)}")
     print(f"Removed rows: {len(df) - len(df_clean)}")
     return df_clean
+
 def create_plots(df, mov_var, err_var):
     """
     Create plots to visualize relationships between movement parameters and errors
     """
     if mov_var not in df.columns or err_var not in df.columns:
-        raise ValueError(f"One of the specified variables '{mov_var}' or '{err_var}' is not present in the DataFrame.")
+        print(f"One of the specified variables '{mov_var}' or '{err_var}' is not present in the DataFrame.")
+        return
     if df.empty:
         print("The DataFrame is empty. Plotting cannot be performed.")
         return
+    
     fig, axes = plt.subplots(1, 2, figsize=(15, 3))
     sns.scatterplot(data=df, x=mov_var, y=err_var, hue='trialtype', ax=axes[0])
     for trial in df['trialtype'].unique():
@@ -77,21 +82,25 @@ def create_plots(df, mov_var, err_var):
     axes[0].set_ylabel(VARS_TO_PRINT[err_var])
     axes[0].set_title(f'{VARS_TO_PRINT[mov_var]} vs {VARS_TO_PRINT[err_var]} by Trial Type')
     axes[0].legend(title=None)
+    
     sns.boxplot(data=df, x='trialtype', y=err_var, hue='trialtype', ax=axes[1])
     axes[1].set_xlabel(VARS_TO_PRINT['trialtype'])
     axes[1].set_ylabel(VARS_TO_PRINT[err_var])
     axes[1].set_title(f'{VARS_TO_PRINT[err_var]} by Trial Type')
     plt.show()
-    unique_trialtypes = df['trialtype'].unique()
-    fig, axes = plt.subplots(1, len(unique_trialtypes), figsize=(15, 3), constrained_layout=True)
+
+    trial_types = df['trialtype'].unique()
+    fig, axes = plt.subplots(1, len(trial_types), figsize=(15, 3), constrained_layout=True)
     fig.suptitle(f'{VARS_TO_PRINT[mov_var]} by Trial Type', y=1.05)
-    if len(unique_trialtypes) == 1:
+    if len(trial_types) == 1:
         axes = [axes]
-    for i, trial in enumerate(unique_trialtypes):
+    for i, trial in enumerate(trial_types):
         trial_data = df[df['trialtype'] == trial]
         sns.histplot(data=trial_data, x=mov_var, ax=axes[i])
         axes[i].set_title(f'{trial}')
     plt.show()
+    return True
+
 def get_correlation(df, mov_var, err_var):
     """
     Compute Pearson correlation
@@ -100,6 +109,7 @@ def get_correlation(df, mov_var, err_var):
         print("The DataFrame is empty. Correlation cannot be computed.")
         return (np.nan, np.nan)
     return stats.pearsonr(df[mov_var], df[err_var])
+
 def analyze_relationships(df):
     """
     Analyze relationships between movement parameters and errors across trial types
@@ -107,25 +117,29 @@ def analyze_relationships(df):
     # List of comparisons to make
     movement_vars = ['movdist', 'force', 'stoplatency']
     error_vars = ['error', 'abserror']
+    
     # corr. placeholder
     results = {}
+    
     if df.empty:
         print("The DataFrame is empty. No relationships to analyze.")
         return results
+    
     # Create plots
     for mov_var in movement_vars:
         for err_var in error_vars:
-            create_plots(df, mov_var, err_var)
-            # Calculate correlations
-            for trial in df['trialtype'].unique():
-                trial_data = df[df['trialtype'] == trial]
-                correlation = get_correlation(trial_data, mov_var, err_var)
-                # Store results
-                results[f'{mov_var}_{err_var}_{trial}'] = {
-                    'correlation': correlation[0],
-                    'p_value': correlation[1]
-                }
+            if create_plots(df, mov_var, err_var):
+                # Calculate correlations
+                for trial in df['trialtype'].unique():
+                    trial_data = df[df['trialtype'] == trial]
+                    correlation = get_correlation(trial_data, mov_var, err_var)
+                    # Store results
+                    results[f'{mov_var}_{err_var}_{trial}'] = {
+                        'correlation': correlation[0],
+                        'p_value': correlation[1]
+                    }
     return results
+
 def analyze_response_time_impact(df, significant_pairs):
     """
     Analyze how response duration affects significant relationships (improved visualization)
@@ -133,6 +147,7 @@ def analyze_response_time_impact(df, significant_pairs):
     if df.empty:
         print("The DataFrame is empty. Analysis cannot be performed.")
         return
+    
     for pair in significant_pairs:
         mov_var, err_var, trial_type = pair.split('_')
         trial_data = df[df['trialtype'] == trial_type]
@@ -154,11 +169,18 @@ def analyze_response_time_impact(df, significant_pairs):
         plt.grid(True, linestyle='--', alpha=0.6)
         plt.tight_layout()
         plt.show()
+    return True
+
 def main(data_path):
+    """
+    Run full analysis process
+    """
     try:
         # Load data
         df = pd.read_csv(data_path)
-        is_valid_df(df)
+        if not is_valid_df(df):
+            print("No data found in the CSV file.")
+            return
         # Clean data
         df_clean = clean_data(df)
         # Perform analysis on cleaned data
@@ -168,14 +190,21 @@ def main(data_path):
         # Analyze impact of response time on significant relationships
         analyze_response_time_impact(df_clean, significant_pairs)
         return results
+    
     except FileNotFoundError:
         print(f"File not found: {data_path}")
+        return
     except pd.errors.EmptyDataError:
         print("No data found in the CSV file.")
+        return
     except pd.errors.ParserError:
         print("Error parsing the CSV file. Please check the file format.")
+        return
     except ValueError as ve:
         print(f"ValueError occurred: {ve}")
+        return
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
+        return
+    
 main(DATA_PATH)
