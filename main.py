@@ -16,13 +16,39 @@ VARS_TO_PRINT = {
     'trialtype': 'Trial Type',
 }
 
-def is_valid_df(df):
+def no_missing_columns(df):
     """
-    Check if the dataframe is valid and contains the required columns
+    Check if the dataframe contains the required columns
     """
     required_columns = ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror', 'trialtype']
     missing_columns = [col for col in required_columns if col not in df.columns]
     return len(missing_columns)==0
+
+def no_data_missmatches(df):
+    """
+    Check that all numeric columns are actually numeric
+    """
+    for col in ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror']:
+        try:
+            df[col].astype(float)
+        except:
+            return False
+    return True
+
+def no_missing_values(df):
+    """
+    Check if any column contains missing values more than 30%
+    """
+    for col in ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror']:
+        if df[col].isnull().sum()>0.3*len(df[col]):
+            return False
+    return True
+
+def is_valid_df(df):
+    """
+    Check if the dataframe is valid
+    """
+    return no_missing_columns(df) and no_data_missmatches(df) and no_missing_values(df)
 
 def clean_data(df):
     """
@@ -30,18 +56,18 @@ def clean_data(df):
     """
     # Create a copy of the dataframe
     df_clean = df.copy()
-    
+
     # 1. Handle missing values
     # Fill missing values with median for numeric columns
     numeric_columns = df_clean.select_dtypes(include=[np.number]).columns
     for col in numeric_columns:
-        df_clean[col].fillna(df_clean[col].median(), inplace=True)
+        df_clean[col] = df_clean[col].fillna(df_clean[col].median())
     # Fill missing values in categorical columns with mode
     categorical_columns = df_clean.select_dtypes(include=['object']).columns
     for col in categorical_columns:
         if col != 'trialtype':  # Specifically check for non-numeric categories
-            df_clean[col].fillna(df_clean[col].mode()[0], inplace=True)
-    
+            df_clean[col] = df_clean[col].fillna(df_clean[col].mode()[0])
+
     # 2. Remove outliers using IQR method
     for col in ['movdist', 'force', 'stoplatency', 'repduration', 'error', 'abserror']:
         if col in df_clean.columns:
@@ -54,7 +80,7 @@ def clean_data(df):
             upper_bound = Q3 + 1.5 * IQR
             # Remove outliers
             df_clean = df_clean[(df_clean[col] >= lower_bound) & (df_clean[col] <= upper_bound)]
-    
+
     # Print cleaning summary
     print("Data Cleaning Summary:")
     print(f"Original rows: {len(df)}")
@@ -72,7 +98,7 @@ def create_plots(df, mov_var, err_var):
     if df.empty:
         print("The DataFrame is empty. Plotting cannot be performed.")
         return
-    
+
     fig, axes = plt.subplots(1, 2, figsize=(15, 3))
     sns.scatterplot(data=df, x=mov_var, y=err_var, hue='trialtype', ax=axes[0])
     for trial in df['trialtype'].unique():
@@ -82,7 +108,7 @@ def create_plots(df, mov_var, err_var):
     axes[0].set_ylabel(VARS_TO_PRINT[err_var])
     axes[0].set_title(f'{VARS_TO_PRINT[mov_var]} vs {VARS_TO_PRINT[err_var]} by Trial Type')
     axes[0].legend(title=None)
-    
+
     sns.boxplot(data=df, x='trialtype', y=err_var, hue='trialtype', ax=axes[1])
     axes[1].set_xlabel(VARS_TO_PRINT['trialtype'])
     axes[1].set_ylabel(VARS_TO_PRINT[err_var])
@@ -98,6 +124,7 @@ def create_plots(df, mov_var, err_var):
         trial_data = df[df['trialtype'] == trial]
         sns.histplot(data=trial_data, x=mov_var, ax=axes[i])
         axes[i].set_title(f'{trial}')
+        axes[i].set_ylabel(VARS_TO_PRINT[err_var]+' Index')
     plt.show()
     return True
 
@@ -116,15 +143,15 @@ def analyze_relationships(df):
     """
     # List of comparisons to make
     movement_vars = ['movdist', 'force', 'stoplatency']
-    error_vars = ['error', 'abserror']
-    
+    error_vars = ['error']
+
     # corr. placeholder
     results = {}
-    
+
     if df.empty:
         print("The DataFrame is empty. No relationships to analyze.")
         return results
-    
+
     # Create plots
     for mov_var in movement_vars:
         for err_var in error_vars:
@@ -147,7 +174,7 @@ def analyze_response_time_impact(df, significant_pairs):
     if df.empty:
         print("The DataFrame is empty. Analysis cannot be performed.")
         return
-    
+
     for pair in significant_pairs:
         mov_var, err_var, trial_type = pair.split('_')
         trial_data = df[df['trialtype'] == trial_type]
@@ -190,7 +217,7 @@ def main(data_path):
         # Analyze impact of response time on significant relationships
         analyze_response_time_impact(df_clean, significant_pairs)
         return results
-    
+
     except FileNotFoundError:
         print(f"File not found: {data_path}")
         return
@@ -206,5 +233,5 @@ def main(data_path):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return
-    
+
 main(DATA_PATH)
