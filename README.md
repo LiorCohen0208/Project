@@ -6,8 +6,9 @@
 - [Introduction](#introduction)
 - [Prerequisites](#prerequisites)
 - [Data](#data)
+- [Structure](#structure)
 - [Usage](#usage)
-- [Explanation of Files](#explanation-of-files)
+- [Detailed Instructions](#detailed-instructions)
 
 ## Introduction
 This project aims to analyze relationships between movement parameters and errors across trial types using a dataset. The script cleans the data, visualizes relationships, and analyzes how response duration affects significant relationships.
@@ -26,6 +27,27 @@ Before running the script, ensure you have the following prerequisites installed
 The dataset required for this analysis can be downloaded from the following link:
 [Sensory-Motor Timing Performance](https://www.kaggle.com/datasets/thedevastator/sensory-motor-timing-performance)
 After downloading, save the dataset in the same directory as the script or update the file path accordingly.
+
+This dataset explores how movement affects auditory timing. Participants judged the timing of tones and movements across three trial types (auditory, movement, and combined).  The data includes accuracy, error, movement distance, force, and stop latency, enabling investigation of conscious sensorimotor timing in unisensory and multisensory tasks.  Use this data to explore how the body influences perception and understand the mechanisms of sensory-motor performance.
+
+**Columns details:**
+subject: Unique identifier for each participant in the experiment. (Integer)
+trialtype: Type of trial completed by a given participant - audio only; movement only; or combined audio/movement. (String)
+duration: Numeric value representing duration timepoints related to each type of trial associated with that row. (Integer)
+repduration: Numeric value representing the participant's response duration. (Integer)
+movdist: Measurement of the distance of the movement. (Integer)
+force: Measurement of the force used in the movement. (Integer)
+stoplatency: Measurement of the time taken to complete the movement. (Integer)
+error: Measurement of how close an estimation was compared to what was expected. (Integer)
+abserror: Measurement of the absolute difference between initial perception value at start and stopping point conclusion. (Integer)
+
+## Structure
+The project contains 4 .py files:
+- **main.py** - used for running the whole process
+- **_globals.py** - holds all constants used within the preprocess & analysis
+- **data_preprocessing.py** - defines a Data class with required validations and cleaning process
+- **analysis.py** - defines an Analysis class with plotting and correlation analysis process
+
 
 ## Usage
 To run the analysis using the script, follow the steps below:
