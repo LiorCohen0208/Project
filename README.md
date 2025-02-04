@@ -31,15 +31,15 @@ After downloading, save the dataset in the same directory as the script or updat
 This dataset explores how movement affects auditory timing. Participants judged the timing of tones and movements across three trial types (auditory, movement, and combined).  The data includes accuracy, error, movement distance, force, and stop latency, enabling investigation of conscious sensorimotor timing in unisensory and multisensory tasks.  Use this data to explore how the body influences perception and understand the mechanisms of sensory-motor performance.
 
 **Columns details:**
-subject: Unique identifier for each participant in the experiment. (Integer)
-trialtype: Type of trial completed by a given participant - audio only; movement only; or combined audio/movement. (String)
-duration: Numeric value representing duration timepoints related to each type of trial associated with that row. (Integer)
-repduration: Numeric value representing the participant's response duration. (Integer)
-movdist: Measurement of the distance of the movement. (Integer)
-force: Measurement of the force used in the movement. (Integer)
-stoplatency: Measurement of the time taken to complete the movement. (Integer)
-error: Measurement of how close an estimation was compared to what was expected. (Integer)
-abserror: Measurement of the absolute difference between initial perception value at start and stopping point conclusion. (Integer)
+- subject: Unique identifier for each participant in the experiment. (Integer)
+- trialtype: Type of trial completed by a given participant - audio only; movement only; or combined audio/movement. (String)
+- duration: Numeric value representing duration timepoints related to each type of trial associated with that row. (Integer)
+- repduration: Numeric value representing the participant's response duration. (Integer)
+- movdist: Measurement of the distance of the movement. (Integer)
+- force: Measurement of the force used in the movement. (Integer)
+- stoplatency: Measurement of the time taken to complete the movement. (Integer)
+- error: Measurement of how close an estimation was compared to what was expected. (Integer)
+- abserror: Measurement of the absolute difference between initial perception value at start and stopping point conclusion. (Integer)
 
 ## Structure
 The project contains 4 .py files:
